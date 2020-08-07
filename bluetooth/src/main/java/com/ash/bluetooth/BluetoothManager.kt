@@ -14,8 +14,9 @@ object BluetoothManager {
     private var context: Context? = null
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bluetoothProfileListener: BluetoothProfileListener? = null
-    private var receiver: BroadcastReceiver? = null
+    private var discoveryReceiver: BroadcastReceiver? = null
     private var discoverabilityReceiver: BroadcastReceiver? = null
+    private var bluetoothEnableReceiver: BroadcastReceiver? = null
 
     interface BluetoothProfileListener {
         fun onServiceConnected(proxy: BluetoothProfile?) {
@@ -37,22 +38,60 @@ object BluetoothManager {
         }
     }
 
-    fun enableBluetooth(activity: Activity, requestCode: Int) {
+    fun enableBluetooth() {
         if (bluetoothAdapter?.isEnabled == false) {
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            startActivityForResult(activity, enableBtIntent, requestCode, null)
+            context?.startActivity(enableBtIntent)
+        }
+        registerBluetoothEnableBroadcast()
+    }
+
+    private fun registerBluetoothEnableBroadcast() {
+        val filter = IntentFilter(ACTION_STATE_CHANGED)
+        if (bluetoothEnableReceiver == null)
+            bluetoothEnableReceiver = getBluetoothEnableReceiver()
+        context?.registerReceiver(bluetoothEnableReceiver, filter)
+    }
+
+    private fun getBluetoothEnableReceiver(): BroadcastReceiver {
+        return object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val action: String? = intent.action
+                action?.let {
+                    when (action) {
+                        ACTION_STATE_CHANGED -> {
+                            val enableMode: Int? =
+                                intent.getIntExtra(EXTRA_STATE, 0)
+                            when (enableMode) {
+                                STATE_ON -> Toast.makeText(
+                                    context,
+                                    "Bluetooth is Turned On",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                STATE_OFF -> Toast.makeText(
+                                    context,
+                                    "Bluetooth is Turned Off",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
-    fun enableBluetoothDiscoverability(){
-        val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
-        }
+    fun enableBluetoothDiscoverability() {
+        val discoverableIntent: Intent =
+            Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+            }
         context?.startActivity(discoverableIntent)
         registerDiscoverabilityBroadcast()
     }
 
-    private fun registerDiscoverabilityBroadcast(){
+
+    private fun registerDiscoverabilityBroadcast() {
         val filter = IntentFilter(ACTION_SCAN_MODE_CHANGED)
         if (discoverabilityReceiver == null)
             discoverabilityReceiver = getDiscoverabilityReceiver()
@@ -66,12 +105,24 @@ object BluetoothManager {
                 action?.let {
                     when (action) {
                         ACTION_SCAN_MODE_CHANGED -> {
-                            val scanMode : Int? =
-                                intent.getIntExtra(EXTRA_SCAN_MODE,0)
-                            when(scanMode){
-                                SCAN_MODE_CONNECTABLE_DISCOVERABLE -> Toast.makeText(context,"The device is in discoverable mode.",Toast.LENGTH_SHORT).show()
-                                SCAN_MODE_CONNECTABLE -> Toast.makeText(context,"The device isn't in discoverable mode but can still receive connections.",Toast.LENGTH_SHORT).show()
-                                SCAN_MODE_NONE -> Toast.makeText(context,"The device isn't in discoverable mode and cannot receive connections.",Toast.LENGTH_SHORT).show()
+                            val scanMode: Int? =
+                                intent.getIntExtra(EXTRA_SCAN_MODE, 0)
+                            when (scanMode) {
+                                SCAN_MODE_CONNECTABLE_DISCOVERABLE -> Toast.makeText(
+                                    context,
+                                    "The device is in discoverable mode",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                SCAN_MODE_CONNECTABLE -> Toast.makeText(
+                                    context,
+                                    "The device isn't in discoverable mode but can still receive connections",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                SCAN_MODE_NONE -> Toast.makeText(
+                                    context,
+                                    "The device isn't in discoverable mode and cannot receive connections",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                     }
@@ -123,9 +174,9 @@ object BluetoothManager {
 
     fun startBluetoothDiscovery() {
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
-        if (receiver == null)
-            receiver = getDiscoveryReceiver()
-        context?.registerReceiver(receiver, filter)
+        if (discoveryReceiver == null)
+            discoveryReceiver = getDiscoveryReceiver()
+        context?.registerReceiver(discoveryReceiver, filter)
     }
 
     fun getDiscoveryReceiver(): BroadcastReceiver {
@@ -139,7 +190,7 @@ object BluetoothManager {
                             // object and its info from the Intent.
                             val device: BluetoothDevice? =
                                 intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                            val blc :BluetoothClass
+                            val blc: BluetoothClass
                             val deviceName = device?.name
                             val deviceHardwareAddress = device?.address // MAC address
                         }
@@ -150,8 +201,9 @@ object BluetoothManager {
     }
 
     fun finishFunctions() {
-        receiver = null
+        bluetoothEnableReceiver = null
         discoverabilityReceiver = null
+        discoveryReceiver = null
         bluetoothAdapter?.let {
             bluetoothAdapter = null
         }
