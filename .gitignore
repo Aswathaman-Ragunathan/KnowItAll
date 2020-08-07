@@ -4,6 +4,7 @@
 *.dex
 *.ap_
 .idea/
+app
 .gradle/
 local.properties
 bin/
