@@ -1,6 +1,5 @@
 package com.ash.bluetooth
 
-import android.app.Activity
 import android.bluetooth.*
 import android.bluetooth.BluetoothAdapter.*
 import android.content.BroadcastReceiver
@@ -8,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.widget.Toast
-import androidx.core.app.ActivityCompat.startActivityForResult
 
 object BluetoothManager {
     private var context: Context? = null
@@ -26,8 +24,8 @@ object BluetoothManager {
         }
     }
 
-    fun initializeAdapter(activity: Activity) {
-        this.context = activity.applicationContext
+    fun initialize(context: Context) {
+        this.context = context
         bluetoothProfileListener = context as BluetoothProfileListener
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (bluetoothAdapter == null) {
@@ -40,7 +38,7 @@ object BluetoothManager {
 
     fun enableBluetooth() {
         if (bluetoothAdapter?.isEnabled == false) {
-            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            val enableBtIntent = Intent(ACTION_REQUEST_ENABLE)
             context?.startActivity(enableBtIntent)
         }
         registerBluetoothEnableBroadcast()
@@ -179,7 +177,7 @@ object BluetoothManager {
         context?.registerReceiver(discoveryReceiver, filter)
     }
 
-    fun getDiscoveryReceiver(): BroadcastReceiver {
+    private fun getDiscoveryReceiver(): BroadcastReceiver {
         return object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 val action: String? = intent.action
@@ -200,7 +198,7 @@ object BluetoothManager {
         }
     }
 
-    fun finishFunctions() {
+    fun finishAndClean() {
         bluetoothEnableReceiver = null
         discoverabilityReceiver = null
         discoveryReceiver = null
